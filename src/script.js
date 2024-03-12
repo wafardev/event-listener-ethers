@@ -8,22 +8,63 @@ function playAlertSound() {
   sound.play("SoundEffect.mp3");
 }
 
+function timestampToDate(unixTimestamp) {
+  // Convert to milliseconds
+  const date = new Date(unixTimestamp * 1000);
+
+  // Format the date
+  const formattedDate = date.toLocaleString(); // Adjust locale and options as needed
+
+  console.log("Locked until: ", formattedDate);
+}
+
 async function main() {
-  // Address which we want to listen for transactions
-  const lockAddress = "0x231278eDd38B00B07fBd52120CEf685B9BaEBCC1";
+  // Addresses which we want to listen for transactions
+  const lockV2Address = "0x77110f67C0EF3c98c43570BADe06046eF6549876";
+  const lockV3Address = "0x231278eDd38B00B07fBd52120CEf685B9BaEBCC1";
 
   provider.on("block", async (blockNumber) => {
     const block = await provider.getBlockWithTransactions(blockNumber);
     for (const tx of block.transactions) {
-      if (tx.to === lockAddress) {
-        await checkTxHash(tx.hash, blockNumber);
+      if (tx.to === lockV2Address) {
+        await checkTxHashV2(tx.hash);
+      }
+      if (tx.to === lockV3Address) {
+        await checkTxHashV3(tx.hash, blockNumber);
       }
     }
   });
+
+  /*const blockNumber = 11724322;
+  const block = await provider.getBlockWithTransactions(blockNumber);
+  for (const tx of block.transactions) {
+    if (tx.to === lockV3Address) {
+      await checkTxHashV3(tx.hash, blockNumber);
+    }
+    if (tx.to === lockV2Address) {
+      await checkTxHashV2(tx.hash);
+    }
+  }*/
 }
 
-async function checkTxHash(txHash, blockNumber) {
+async function checkTxHashV2(txHash) {
   const tx = await provider.getTransaction(txHash);
+  // Check if the transaction is a lock method
+  if (tx.data.startsWith("0xcde7cced")) {
+    const txReceipt = await provider.getTransactionReceipt(txHash);
+    const timestamp = parseInt(
+      "0x" + txReceipt.logs[txReceipt.logs.length - 1].data.slice(-10)
+    );
+    timestampToDate(timestamp);
+    const topics = txReceipt.logs[txReceipt.logs.length - 1].topics;
+    const tokenAddresses = topics.slice(2);
+    await getLogData(tokenAddresses);
+  }
+}
+
+async function checkTxHashV3(txHash, blockNumber) {
+  const tx = await provider.getTransaction(txHash);
+  // Check if the transaction is a lock method
   if (tx.data.startsWith("0xa35a96b8")) {
     const txReceipt = await provider.getTransactionReceipt(txHash);
     const poolAddress =
@@ -34,16 +75,12 @@ async function checkTxHash(txHash, blockNumber) {
       "0x" + txReceipt.logs[txReceipt.logs.length - 1].data.slice(440, 450)
     );
 
-    // Convert to milliseconds
-    const date = new Date(unixTimestamp * 1000);
+    timestampToDate(unixTimestamp);
 
-    // Format the date
-    const formattedDate = date.toLocaleString(); // Adjust locale and options as needed
-
-    console.log("Locked until: ", formattedDate);
     const exactLog = await getLogs(poolAddress, blockNumber);
 
-    await getLogData(exactLog[0]);
+    const topics = [exactLog[0].topics[1], exactLog[0].topics[2]];
+    await getLogData(topics);
   }
 }
 
@@ -55,7 +92,7 @@ async function getLogs(poolAddress, blockNumber) {
     // Uniswap V3 Factory address on Base Mainnet
     const uniswapV3Factory = "0x33128a8fC17869897dcE68Ed026d694621f6FDfD";
 
-    // Filter options
+    // Filter oƒptions
     const filter = {
       fromBlock: 0,
       toBlock: blockNumber,
@@ -80,11 +117,10 @@ async function getLogs(poolAddress, blockNumber) {
   });
 }
 
-async function getLogData(log) {
+async function getLogData(topics) {
   // WETH Address on Base Mainnet encoded and padded to 32 bytes
   const wethAddress =
     "0x0000000000000000000000004200000000000000000000000000000000000006";
-  const topics = [log.topics[1], log.topics[2]];
   if (topics[0] === wethAddress) {
     console.log("Locked token: 0x" + topics[1].slice(26));
   } else if (topics[1] === wethAddress) {
