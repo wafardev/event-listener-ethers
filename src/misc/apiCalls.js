@@ -111,24 +111,29 @@ async function checkContractSafety(contractAddress, chain, message) {
   )
     .then((response) => response.json())
     .then(async (data) => {
-      if (data.is_flagged) {
-        console.log(`The contract (${contractAddress}) has been flagged`);
+      if (data.status === "pending") {
+        console.log("Cannot verify the contract.");
         bool = false;
-      }
-      if (checkHoneypot(data)) {
-        console.log(`The contract (${contractAddress}) is a honeypot`);
-        bool = false;
-      }
-      const tax = data.swap_simulation;
-      message.buyTax = tax.buy_fee;
-      message.sellTax = tax.sell_fee;
-      if (tax.buy_fee === undefined || tax.sell_fee === undefined) {
-        ({ buyTax, sellTax } = await useHoneypotAPI(contractAddress));
-        if (buyTax === 100 && sellTax === 100) {
+      } else {
+        if (data.is_flagged) {
+          console.log(`The contract (${contractAddress}) has been flagged`);
           bool = false;
-        } else {
-          message.buyTax = buyTax;
-          message.sellTax = sellTax;
+        }
+        if (checkHoneypot(data)) {
+          console.log(`The contract (${contractAddress}) is a honeypot`);
+          bool = false;
+        }
+        const tax = data.swap_simulation;
+        message.buyTax = tax.buy_fee;
+        message.sellTax = tax.sell_fee;
+        if (tax.buy_fee === undefined || tax.sell_fee === undefined) {
+          ({ buyTax, sellTax } = await useHoneypotAPI(contractAddress));
+          if (buyTax === 100 && sellTax === 100) {
+            bool = false;
+          } else {
+            message.buyTax = buyTax;
+            message.sellTax = sellTax;
+          }
         }
       }
     });

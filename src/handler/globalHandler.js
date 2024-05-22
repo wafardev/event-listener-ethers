@@ -23,7 +23,6 @@ async function checkVerifiedAndSafe(baseTokenAddress, chain, message) {
 async function checkUNCXLock(tx, provider, version, chain, message) {
   let poolAddress;
   let amount;
-  let chain;
 
   if (version === 2) {
     ({ poolAddress, amount } = await checkTxHashV2(tx, chain, "UNCX", message));
