@@ -11,6 +11,7 @@ async function checkUNCXTxHashV3(tx, provider, chain, message) {
     message.chain = chain;
     message.type = `🔒 NEW V3 POOL LOCKED ON ${chain.toUpperCase()} 🔒`;
     console.log("New pool locked: ", poolAddress);
+    console.log(message.type);
     const unixTimestamp = parseInt(
       "0x" + txReceipt.logs[txReceipt.logs.length - 1].data.slice(440, 450)
     );

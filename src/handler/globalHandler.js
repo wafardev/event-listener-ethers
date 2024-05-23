@@ -4,7 +4,6 @@ const {
 } = require("../misc/apiCalls");
 const { buildAndSendMessage } = require("../telegram/messageGenerator");
 const {
-  checkUNCXTxHashV2,
   checkTxHashV2,
   checkLockedLP,
   checkBurnedSupply,
@@ -34,14 +33,15 @@ async function checkUNCXLock(tx, provider, version, chain, message) {
     if (amount) {
       await checkLockedLP(poolAddress, provider, amount, message);
     }
-    await coreFunctionChecker(tx, chain, provider, message);
+    await coreFunctionChecker(poolAddress, chain, provider, message);
   }
 }
 
 async function checkBurnedLPTx(tx, provider, chain, message) {
   message.chain = chain;
+  console.log("New pool burned: ", tx.to);
   message.type = `🔥 NEW V2 BURN ON ${chain.toUpperCase()} DETECTED 🔥`;
-  console.log("Uniswap V2 pair burn transaction detected");
+  console.log(message.type);
   const burnedPercentage = await checkBurnedSupply(
     tx.to,
     tx.data,
@@ -52,12 +52,16 @@ async function checkBurnedLPTx(tx, provider, chain, message) {
     console.log("Not enough LP tokens have been burned.");
     return;
   }
-  await coreFunctionChecker(tx, chain, provider, message);
+  await coreFunctionChecker(tx.to, chain, provider, message);
 }
 
-async function coreFunctionChecker(tx, chain, provider, message) {
+async function coreFunctionChecker(poolAddress, chain, provider, message) {
   setTimeout(async () => {
-    const tokenAddress = await getTokenInfoWithRetry(tx.to, chain, message);
+    const tokenAddress = await getTokenInfoWithRetry(
+      poolAddress,
+      chain,
+      message
+    );
     if (tokenAddress) {
       const isVerifiedAndSafe = await checkVerifiedAndSafe(
         tokenAddress,
@@ -82,13 +86,13 @@ async function coreFunctionChecker(tx, chain, provider, message) {
             console.log("Social links:");
             console.log(socialLinks);
           }
-          await buildAndSendMessage(message);
+          await buildAndSendMessage(message, chain);
         } else {
           console.log(
             `The token (${tokenAddress}) has not been renounced yet.`
           );
           await waitForRenounce(tokenAddress, provider, message);
-          await buildAndSendMessage(message);
+          await buildAndSendMessage(message, chain);
         }
       }
     }

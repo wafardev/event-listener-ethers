@@ -1,6 +1,6 @@
 const { sendMessage } = require("./index");
 
-async function buildAndSendMessage(messageObject) {
+async function buildAndSendMessage(messageObject, chain) {
   console.log(messageObject);
   messageObject.chart = `<a href="https://dexscreener.com/${messageObject.chain}/${messageObject.address}">Chart</a>`;
   messageObject.buy = `<a href="https://app.uniswap.org/swap?outputCurrency=${messageObject.address}&chain=${messageObject.chain}">Buy</a>`;
@@ -38,7 +38,7 @@ Buy tax: ${messageObject.buyTax}% | Sell tax: ${messageObject.sellTax}%
 ${messageObject.socialLinks ? messageObject.socialLinks.join(" | ") : ""}`;
 
   console.log(message);
-  await sendMessage(message);
+  await sendMessage(message, chain);
 }
 
 module.exports = { buildAndSendMessage };

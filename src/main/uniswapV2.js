@@ -78,6 +78,7 @@ async function checkTxHashV2(tx, chain, lockType, message) {
   if (tx.data.startsWith(methodHash)) {
     const poolAddress = "0x" + tx.data.slice(34, 74);
     message.chain = chain;
+    console.log("New pool locked: ", poolAddress);
     message.type = `🔒 NEW V2 POOL LOCKED ON ${chain.toUpperCase()} 🔒`;
     console.log(message.type);
 

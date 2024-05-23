@@ -12,7 +12,7 @@ async function checkTEAMV2Lock(tx, provider, chain, message) {
 
   if (poolAddress && amount) {
     await checkLockedLP(poolAddress, provider, amount, message);
-    await coreFunctionChecker(tx, chain, provider, message);
+    await coreFunctionChecker(poolAddress, chain, provider, message);
   }
 }
 

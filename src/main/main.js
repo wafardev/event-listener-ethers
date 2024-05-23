@@ -15,8 +15,8 @@ let rpc_url;
 
 if (process.argv[2] === "base") {
   chainName = "base";
-  lockUNCXV3Address = "0x231278eDd38B00B07fBd52120CEf685B9BaEBCC1";
   lockUNCXV2Address = "0xc4E637D37113192F4F1F060DaEbD7758De7F4131";
+  lockUNCXV3Address = "0x231278eDd38B00B07fBd52120CEf685B9BaEBCC1";
   teamV2Address = "0x4F0Fd563BE89ec8C3e7D595bf3639128C0a7C33A";
   onlyMoonV2Address = "0x77110f67C0EF3c98c43570BADe06046eF6549876";
   rpc_url = process.env.BASE_RPC_URL;
@@ -26,7 +26,7 @@ if (process.argv[2] === "base") {
   lockUNCXV2Address = "0x663A5C229c09b049E36dCc11a9B0d4a8Eb9db214";
   lockUNCXV3Address = "0xFD235968e65B0990584585763f837A5b5330e6DE";
   teamV2Address = "0xE2fE530C047f2d85298b07D9333C05737f1435fB";
-  onlyMoonV2Address = undefined;
+  onlyMoonV2Address = "0x7BF2f06D65b5C9f146ea79a4eCC7C7cdFC01B613";
   rpc_url = process.env.ETH_RPC_URL;
 } else {
   console.log(
@@ -67,4 +67,4 @@ async function handleBlock(blockNumber) {
 }
 
 main();
-//handleBlock(14808473);
+//handleBlock(19924110);
