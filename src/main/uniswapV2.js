@@ -17,15 +17,25 @@ function checkReceiver(hexData) {
 
 async function checkUniswapV2Pair(contractAddress, provider) {
   let bool = false;
+  let name;
   const uniswapV2ABI = [
     "function name() external pure returns (string memory)",
   ];
 
   const contract = new ethers.Contract(contractAddress, uniswapV2ABI, provider);
 
-  const name = await contract.name();
+  try {
+    name = await contract.name();
+  } catch (error) {
+    console.log("The contract is not a Uniswap V2 pair.");
+  }
 
-  if (name === "Uniswap V2" || name === "SushiSwap LP Token") {
+  if (
+    name === "Uniswap V2" ||
+    name === "SushiSwap LP Token" ||
+    name === "VVS Finance LPs" ||
+    name === "Ryoshi LPs"
+  ) {
     bool = true;
   }
   return bool;
@@ -54,7 +64,7 @@ async function checkBurnedSupply(contractAddress, hexData, provider, message) {
     (parseFloat(burnedAmount.toString()) / parseFloat(totalSupply.toString())) *
     100
   ).toFixed(2);
-  message.amount = `Burned Percentage: ${burnedPercentage.toString()}%`;
+  message.amount = `🔥 <b>Burned Percentage</b>: ${burnedPercentage.toString()}%`;
   console.log("Burned Percentage:", burnedPercentage.toString());
 
   return burnedPercentage;
@@ -79,14 +89,16 @@ async function checkTxHashV2(tx, chain, lockType, message) {
     const poolAddress = "0x" + tx.data.slice(34, 74);
     message.chain = chain;
     console.log("New pool locked: ", poolAddress);
-    message.type = `🔒 NEW V2 POOL LOCKED ON ${chain.toUpperCase()} 🔒`;
+    message.type = `🔒 <b>NEW V2 POOL LOCKED ON ${chain.toUpperCase()}</b> 🔒`;
     console.log(message.type);
 
     const unixTimestamp = parseInt(
       "0x" + tx.data.slice(hexDataNumbers[0], hexDataNumbers[1])
     );
 
-    timestampToDate(unixTimestamp, message);
+    if (!timestampToDate(unixTimestamp, message)) {
+      return {};
+    }
 
     const amount = BigInt(
       `0x${tx.data.slice(hexDataNumbers[2], hexDataNumbers[3])}`
@@ -110,7 +122,7 @@ async function checkLockedLP(poolAddress, provider, lockedAmount, message) {
     (parseFloat(lockedAmount.toString()) / parseFloat(totalSupply.toString())) *
     100
   ).toFixed(2);
-  message.amount = `Locked Percentage: ${lockedPercentage.toString()}%`;
+  message.amount = `🔐 <b>Locked Percentage</b>: ${lockedPercentage.toString()}%`;
   console.log("Locked Percentage:", lockedPercentage.toString(), "%");
   return lockedPercentage;
 }

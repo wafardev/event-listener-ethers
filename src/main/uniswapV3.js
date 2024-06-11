@@ -9,14 +9,16 @@ async function checkUNCXTxHashV3(tx, provider, chain, message) {
     const poolAddress =
       "0x" + txReceipt.logs[txReceipt.logs.length - 1].data.slice(602, 642);
     message.chain = chain;
-    message.type = `🔒 NEW V3 POOL LOCKED ON ${chain.toUpperCase()} 🔒`;
+    message.type = `🔒 <b>NEW V3 POOL LOCKED ON ${chain.toUpperCase()}</b> 🔒`;
     console.log("New pool locked: ", poolAddress);
     console.log(message.type);
     const unixTimestamp = parseInt(
       "0x" + txReceipt.logs[txReceipt.logs.length - 1].data.slice(440, 450)
     );
 
-    timestampToDate(unixTimestamp, message);
+    if (!timestampToDate(unixTimestamp, message)) {
+      return;
+    }
 
     return poolAddress;
   }

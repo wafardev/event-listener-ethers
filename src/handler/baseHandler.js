@@ -10,8 +10,15 @@ async function checkOnlyMoonsLock(tx, provider, chain, message) {
   );
 
   if (poolAddress && amount) {
-    await checkLockedLP(poolAddress, provider, amount, message);
-    await coreFunctionChecker(poolAddress, chain, provider, message);
+    const percentage = await checkLockedLP(
+      poolAddress,
+      provider,
+      amount,
+      message
+    );
+    if (percentage > 90) {
+      await coreFunctionChecker(poolAddress, chain, provider, message);
+    }
   }
 }
 

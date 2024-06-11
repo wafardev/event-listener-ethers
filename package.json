@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "base": "node ./src/main/main.js base",
-    "eth": "node ./src/main/main.js eth"
+    "eth": "node ./src/main/main.js eth",
+    "cronos": "node ./src/main/main.js cronos"
   },
   "keywords": [],
   "author": "",

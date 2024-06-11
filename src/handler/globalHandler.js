@@ -1,22 +1,20 @@
-const {
-  checkVerifiedSourceCode,
-  checkContractSafety,
-} = require("../misc/apiCalls");
+const { waitForVerifiedSourceCode, useTTFBotAPI } = require("../misc/apiCalls");
 const { buildAndSendMessage } = require("../telegram/messageGenerator");
 const {
   checkTxHashV2,
   checkLockedLP,
   checkBurnedSupply,
 } = require("../main/uniswapV2");
-const { getTokenInfoWithRetry } = require("../misc/apiCalls");
+const { getTokenInfoWithRetry, useHoneypotAPI } = require("../misc/apiCalls");
 const { checkUNCXTxHashV3 } = require("../main/uniswapV3");
-const { checkRenounced, waitForRenounce } = require("../misc/rpcCalls");
+const {
+  checkRenounced,
+  waitForRenounce,
+  checkClog,
+} = require("../misc/rpcCalls");
 
-async function checkVerifiedAndSafe(baseTokenAddress, chain, message) {
-  return (
-    (await checkVerifiedSourceCode(baseTokenAddress, chain, message)) &&
-    (await checkContractSafety(baseTokenAddress, chain, message))
-  );
+async function checkVerified(baseTokenAddress, chain, message) {
+  return await waitForVerifiedSourceCode(baseTokenAddress, chain, message);
 }
 
 async function checkUNCXLock(tx, provider, version, chain, message) {
@@ -25,22 +23,31 @@ async function checkUNCXLock(tx, provider, version, chain, message) {
 
   if (version === 2) {
     ({ poolAddress, amount } = await checkTxHashV2(tx, chain, "UNCX", message));
+
+    if (poolAddress) {
+      const percentage = await checkLockedLP(
+        poolAddress,
+        provider,
+        amount,
+        message
+      );
+      if (percentage > 90) {
+        await coreFunctionChecker(poolAddress, chain, provider, message);
+      }
+    }
   } else if (version === 3) {
     poolAddress = await checkUNCXTxHashV3(tx, provider, chain, message);
-  }
 
-  if (poolAddress) {
-    if (amount) {
-      await checkLockedLP(poolAddress, provider, amount, message);
+    if (poolAddress) {
+      await coreFunctionChecker(poolAddress, chain, provider, message);
     }
-    await coreFunctionChecker(poolAddress, chain, provider, message);
   }
 }
 
 async function checkBurnedLPTx(tx, provider, chain, message) {
   message.chain = chain;
   console.log("New pool burned: ", tx.to);
-  message.type = `🔥 NEW V2 BURN ON ${chain.toUpperCase()} DETECTED 🔥`;
+  message.type = `🔥 <b>NEW V2 BURN ON ${chain.toUpperCase()} DETECTED</b> 🔥`;
   console.log(message.type);
   const burnedPercentage = await checkBurnedSupply(
     tx.to,
@@ -48,7 +55,7 @@ async function checkBurnedLPTx(tx, provider, chain, message) {
     provider,
     message
   );
-  if (burnedPercentage < 50) {
+  if (burnedPercentage < 90) {
     console.log("Not enough LP tokens have been burned.");
     return;
   }
@@ -63,44 +70,49 @@ async function coreFunctionChecker(poolAddress, chain, provider, message) {
       message
     );
     if (tokenAddress) {
-      const isVerifiedAndSafe = await checkVerifiedAndSafe(
-        tokenAddress,
-        chain,
-        message
-      );
-      if (isVerifiedAndSafe) {
-        const isRenounced = await checkRenounced(
+      if (await waitForVerifiedSourceCode(tokenAddress, chain, message)) {
+        const renouncedBool = await checkRenounced(
           tokenAddress,
           provider,
           message
         );
-        if (isRenounced) {
-          console.log(`The token (${tokenAddress}) is safe to buy`);
-          const socialLinks = await checkVerifiedSourceCode(
-            tokenAddress,
-            chain,
-            message,
-            true
-          );
-          if (typeof socialLinks === "object" && socialLinks !== null) {
-            console.log("Social links:");
-            console.log(socialLinks);
+        const isSafe = await useTTFBotAPI(
+          tokenAddress,
+          renouncedBool,
+          chain,
+          message
+        );
+
+        if (isSafe === "renounce" || isSafe === "unverified") {
+          if (isSafe === "unverified") {
+            const { buyTax, sellTax } = await useHoneypotAPI(tokenAddress);
+            message.buyTax = buyTax;
+            message.sellTax = sellTax;
+            if (
+              !(await checkClog(tokenAddress, poolAddress, provider)) ||
+              buyTax === 100 ||
+              sellTax === 100
+            ) {
+              return;
+            }
           }
-          await buildAndSendMessage(message, chain);
-        } else {
-          console.log(
-            `The token (${tokenAddress}) has not been renounced yet.`
-          );
-          await waitForRenounce(tokenAddress, provider, message);
+          if (await waitForRenounce(tokenAddress, provider, message)) {
+            if (
+              await useTTFBotAPI(tokenAddress, renouncedBool, chain, message)
+            ) {
+              await buildAndSendMessage(message, chain);
+            }
+          }
+        } else if (isSafe) {
           await buildAndSendMessage(message, chain);
         }
       }
     }
-  }, 10000);
+  }, 1000);
 }
 
 module.exports = {
-  checkVerifiedAndSafe,
+  checkVerified,
   checkUNCXLock,
   checkBurnedLPTx,
   coreFunctionChecker,
