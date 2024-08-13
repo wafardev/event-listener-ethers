@@ -37,7 +37,7 @@ async function getTokenInfo(pairAddress, chain, message) {
       message.address = `${address}`;
       message.name = `${name}`;
       message.symbol = `${symbol}`;
-      if (liquidity < 1000 || volume < 100) {
+      if (liquidity < 5000 || volume < 1000) {
         console.log("The pair has low volume or liquidity");
         address = "ignore";
       }
@@ -311,8 +311,12 @@ async function useTTFBotAPI(contractAddress, renouncedBool, chain, message) {
     }
 
     if (contractBalance > liquidityTokens || top1Holder > liquidityTokens) {
-      console.log("Someone holds more than LP");
-      return false;
+      if (!renounceCheck) {
+        console.log("Someone holds more than LP");
+        return false;
+      } else {
+        console.log("Someone holds more than LP but still not renounced");
+      }
     }
 
     if (honeyPot) {
